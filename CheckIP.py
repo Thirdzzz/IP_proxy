@@ -16,7 +16,7 @@ class Checker(object):
         self.valid_ip_file = valid_ip_file
         self.i = 0
         self.ipnum = 0
-        self.check = 0
+        self.check = 1
     
     def probe_proxy_ip(self, proxy_ip):
         """代理检测"""
@@ -32,21 +32,28 @@ class Checker(object):
             html = urllib2.urlopen('http://1212.ip138.com/ic.asp')
             time2 = time()
             self.i += 1
-            print self.i, time2-time1
+            #print self.check, self.i, time2-time1
             # print html.read()
             if html:
-                return proxy_ip['http']
+	        content = html.read().decode('gb2312').encode('utf8')
+	        #print content
+	        if content.find('您的IP是') != -1:
+       	            #print proxy_ip['http']
+	            return proxy_ip['http']
+	        else:
+	            #print 'ad block'
+    	            return ''
             else:
                 return ''
         except Exception as e:
             time2 = time()
             self.i += 1
-            print self.i, time2-time1, 'URLopen error'
+            print self.check, self.i, time2-time1, 'URLopen error'
             return ''
         except Timeout:
             time2 = time()
             self.i += 1
-            print self.i, time2-time1, 'Timeout'
+            print self.check, self.i, time2-time1, 'Timeout'
             return ''
 
 
@@ -59,12 +66,12 @@ class Checker(object):
                 ip_list.append(dict)
                 self.ipnum += 1
         print self.ipnum
-        pool = Pool(100)
+        pool = Pool(500)
         succ = 0
         failed = 0
         avail_list = pool.map(self.probe_proxy_ip, ip_list)
         with open(self.valid_ip_file, 'w') as f:
-            for i in range(1, len(avail_list)):
+            for i in range(0, len(avail_list)):
                 if avail_list[i] == "" :
                     failed += 1
                 else:
@@ -72,8 +79,10 @@ class Checker(object):
                     succ += 1
                     #print avail_list[i]
         print "succ:",succ,"failed:",failed
-        if self.check < 3:
+        if self.check <= 5:
             self.check += 1
+            self.i = 0
+            self.ipnum = 0
             self.get_avail_ip(self.valid_ip_file)
             
     
